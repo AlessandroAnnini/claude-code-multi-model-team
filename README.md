@@ -21,6 +21,7 @@ Everything here follows the official Claude Code docs for the [advisor tool](htt
 - [Installation](#installation)
 - [How it works](#how-it-works)
   - [The team](#the-team)
+  - [What is LSP and why we need it](#what-is-lsp-and-why-we-need-it)
   - [Standard variants](#standard-variants-offline-hooks)
   - [JEV variants](#jev-variants-classifier-hooks)
 - [Tuning](#tuning)
@@ -254,6 +255,20 @@ tools: Read, Grep, Glob, LSP   # read-only; Write and Edit are not available
 Because the custom `Explore.md` has the same name as the built-in Explore agent, it **replaces** it (user-level agents outrank built-ins). Scouts don't read `CLAUDE.md`, so any rule that matters to them ("ignore `vendor/`") must be restated in the delegation prompt; `CLAUDE.md` tells the builder to do exactly that. Scouts inherit the advisor but are instructed never to call it.
 
 **The advisor.** Claude decides when to call it; there is no setting to force or cap calls. `CLAUDE.md` nudges it toward three moments: before committing to a non-trivial plan, when the same error occurs twice, and before declaring substantial work complete. Each call sends the **entire transcript** to Opus with no caching between calls, so advisor cost grows with session length. Toggling `/advisor` mid-session does **not** invalidate the builder's prompt cache. In the transcript you see `Advising opus…` followed by `Reviewed`, `Declined` or `Unavailable`; press `Ctrl+O` to read the guidance.
+
+### What is LSP and why we need it
+
+**LSP** is the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), the same protocol your editor uses for "go to definition", "find all references" and rename. A *language server* (`csharp-ls`, `typescript-language-server`, `pyright`, …) parses your project the way the compiler does and answers precise questions about symbols.
+
+Without it, the scouts can only search text with `Grep`. That is fast, but it can't tell apart:
+
+- two functions with the same name in different modules,
+- a real call site and a mention in a comment or string,
+- a symbol that is re-exported or aliased under another name.
+
+With an LSP server, `grep` and `Explore` can ask for the actual definition, the actual references and the type of a symbol. They return fewer, more accurate hits, so Haiku burns fewer turns and the builder gets cleaner findings with less noise in its context.
+
+The scouts list `LSP` in their `tools`, but the tool only does something once a language-server binary **and** its Claude Code plugin are installed. See [step 5 of the installation](#5-code-intelligence-plugins-optional-recommended). It is optional: without it, the scouts fall back to text search.
 
 ### Standard variants: offline hooks
 
