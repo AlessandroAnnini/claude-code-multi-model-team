@@ -1,0 +1,14 @@
+# Secrets: the TypeSafe key lives in ~/.claude/jev/api_key, never in this repo
+**/api_key
+*.api_key
+!jev.api_key.example
+
+# JEV runtime data
+**/jev/decisions.jsonl
+**/jev/state/
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
