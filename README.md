@@ -117,6 +117,7 @@ flowchart LR
 | **Claude Code ≥ 2.1.300** | Haiku 5.5 subagents need ≥ 2.1.293; `/advisor` outside the terminal picker needs ≥ 2.1.260 | `claude --version`, then `claude update` |
 | **Anthropic API or Claude subscription** | The advisor is a server tool. It is **not** available on Bedrock, Vertex / Agent Platform or Foundry | — |
 | **[uv](https://docs.astral.sh/uv/)** (`-jev` only) | `jev_hook.py` is a self-contained `uv run --script`; it fetches `typesafe-sdk` itself | `uv --version` |
+| **jq** or **python3** (`posix-standard` only) | `team_hook.sh` reads the prompt out of the hook's JSON input; with neither, the triage hint is skipped | `jq --version` |
 | **TypeSafe API key** (`-jev` only) | Powers JEV. Without it the hooks silently do nothing | — |
 | **Git for Windows** (Windows, recommended) | Gives Claude Code the Bash tool. Without it Claude uses the PowerShell tool; the `windows-jev` hooks cover both | `bash --version` in PowerShell |
 | **.NET SDK / Node.js** (optional) | Only for the language-server plugins in step 5 | `dotnet --version`, `npm --version` |
@@ -149,7 +150,7 @@ New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude" | Out-Null
 Copy-Item <variant>\CLAUDE.md, <variant>\agents, <variant>\hooks "$env:USERPROFILE\.claude\" -Recurse -Force
 ```
 
-**`settings.json`**: if you don't have one, copy `<variant>/settings.json` as is. If you already have one, merge these keys into it (take the `hooks` block from your variant; `JEV_MODE` exists only in `-jev`):
+**`settings.json`**: if you don't have one, copy `<variant>/settings.json` as is. If you already have one, merge these keys into it (take the `hooks` block from your variant; `JEV_MODE` exists only in `-jev`). In `-jev` variants **do not skip `JEV_MODE`**: the hook itself defaults to `shadow` (log only) when it is unset, so without `"JEV_MODE": "enforce"` no hints or permission prompts ever appear:
 
 ```jsonc
 {
@@ -302,7 +303,7 @@ sequenceDiagram
 | Event | Injected as | Content |
 | - | - | - |
 | `SessionStart` (startup, resume, clear, compact) | plain stdout → context | One paragraph: you are the main session of a multi-model team; delegate; when to consult the advisor |
-| `UserPromptSubmit` | `additionalContext` | Up to two `Triage:` lines. Discovery words (`where`, `find`, `implemented`, `call sites`, `references`, …) → Explore/grep hint. Library words (`library`, `api`, `sdk`, `docs`, `version`, `deprecated`, …) → docs hint. Prompts under 80 characters get nothing |
+| `UserPromptSubmit` | `additionalContext` | Up to two `Triage:` lines. Discovery words (`where`, `find`, `implemented`, `call sites`, `references`, …) → Explore/grep hint. Library words (`library`, `api`, `sdk`, `docs`, `version`, `deprecated`, …) → docs hint. Prompts under 80 characters get nothing; only the prompt text is matched, not paths or session ids |
 | `SubagentStart` (`*`) | `additionalContext` | You are a read-only scout; return paths, symbols and concise findings; don't modify files, don't decide architecture, don't consult the advisor |
 
 Everything fails open: no match, an error or a timeout simply means no output and Claude Code behaves normally.
