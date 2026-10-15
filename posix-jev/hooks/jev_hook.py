@@ -9,7 +9,8 @@
   jev_hook.py bash-gate       -> PreToolUse (Bash)
   jev_hook.py failure-watch   -> PostToolUse / PostToolUseFailure (Bash)
 
-JEV_MODE=shadow (default): log only.  JEV_MODE=enforce: act on decisions.
+JEV_MODE=shadow (default when unset): log only.  JEV_MODE=enforce: act on decisions.
+The shipped settings.json sets JEV_MODE=enforce; copy its env block or no hints appear.
 Any error -> no output -> Claude Code's normal behavior (fail open).
 """
 
@@ -39,8 +40,10 @@ SAFE_CMD = re.compile(
 
 # Only the output of these commands is checked for failures.
 WATCHED_CMD = re.compile(
-    r"\b(test|pytest|jest|vitest|tsc|eslint|ruff|mypy|cargo|go\s+(build|test)|"
-    r"dotnet|mvn|gradle|make|npm\s+run|pnpm|yarn|python|node)\b"
+    r"(?:^|[;&|]\s*|&&\s*)(?:(?:\w+=\S+\s+)*)"
+    r"(pytest|jest|vitest|tsc|eslint|ruff|mypy|cargo|go\s+(build|test)|"
+    r"dotnet|mvn|gradle|make|(npm|pnpm|yarn)\s+(run|test)|"
+    r"python3?\s+-m\s+(pytest|unittest|mypy|ruff)|node\s+--test)\b"
 )
 
 
