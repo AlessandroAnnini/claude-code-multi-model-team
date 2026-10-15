@@ -33,12 +33,12 @@ Everything here follows the official Claude Code docs for the [advisor tool](htt
 
 ## Why this matters
 
-Running a single model for everything forces a bad trade: Opus everywhere is expensive and slow on the 80 % of turns that are routine, while Sonnet everywhere leaves you without a strong second opinion exactly when a plan is about to go wrong. Reading hundreds of files to map a repository burns the same tokens whichever model does it.
+Running a single model for everything forces a trade: Opus everywhere is slower and costs more per token on routine turns, while Sonnet everywhere leaves you without a strong second opinion exactly when a plan is about to go wrong. Reading hundreds of files to map a repository burns the same tokens whichever model does it, so it is better done by the cheapest model that can do it.
 
-This setup splits the work by what each model is good at:
+This setup splits the work by what each model is good at. The design is based on public per-token pricing and the documented behavior of each feature; **savings and quality gains have not been benchmarked**, so treat them as the intent, not a measured result:
 
-- **Cost lands where it is earned.** Opus reads the conversation only when the builder escalates, not on every turn. Haiku does the high-volume file reading at a fraction of the price. Sonnet does the actual engineering.
-- **An independent reviewer.** The advisor sees every tool call and result, so it catches a plan that is about to fail without being anchored on the builder's own reasoning. It is consulted before a plan locks, when the same error hits twice, and before work is declared done.
+- **Cost goes where it is needed.** Opus reads the conversation only when the builder escalates, not on every turn. Haiku does the high-volume file reading at a lower per-token price. Sonnet does the actual engineering.
+- **An independent reviewer.** The advisor sees every tool call and result, so it can catch a plan that is about to fail without being anchored on the builder's own reasoning. It is consulted before a plan locks, when the same error hits twice, and before work is declared done.
 - **Parallel discovery.** The three scouts run as background subagents, so repository mapping, symbol lookup and documentation research happen at the same time, and only concise findings come back into the main context.
 - **The builder's context stays clean.** Scouts return paths, symbols and summaries, not file dumps. The main session keeps its context for reasoning and code.
 
@@ -241,7 +241,7 @@ flowchart LR
 
 **The builder.** Sonnet 5.5 runs the session at `medium` effort. `CLAUDE.md` tells it to delegate discovery, when to consult the advisor, and that it owns the final decision.
 
-**The scouts.** All three agents share the same frontmatter:
+**The scouts.** All three agents share the same settings, except `tools`:
 
 ```yaml
 model: haiku          # Haiku 5.5
@@ -249,8 +249,11 @@ effort: low
 background: true      # run in parallel, never block the main session
 omitClaudeMd: true    # start without CLAUDE.md to stay cheap and fast
 maxTurns: 25          # hard cost ceiling
-tools: Read, Grep, Glob, LSP   # read-only; Write and Edit are not available
+tools: Read, Grep, Glob, LSP   # Explore and grep: read-only code search
+tools: Read, WebSearch, WebFetch   # docs: reads local files and the web
 ```
+
+None of them can write or edit files. The agent definitions are byte-for-byte identical in all four variants.
 
 Because the custom `Explore.md` has the same name as the built-in Explore agent, it **replaces** it (user-level agents outrank built-ins). Scouts don't read `CLAUDE.md`, so any rule that matters to them ("ignore `vendor/`") must be restated in the delegation prompt; `CLAUDE.md` tells the builder to do exactly that. Scouts inherit the advisor but are instructed never to call it.
 
@@ -390,6 +393,7 @@ Run these in a **new** terminal session after installing.
 ## Known limitations
 
 - **VS Code extension rendering.** The Claude Code VS Code extension (≤ 2.1.300) has no renderer for advisor results and shows `Unsupported content type: advisor_tool_result`. The advisor still runs and its guidance still reaches the builder; read it in the terminal with `Ctrl+O`. Only an extension update can fix this.
+- **No benchmarks.** Cost and quality benefits are expected from the design, not measured. Compare your own token usage before and after.
 - **Advisor timing is not rule-based.** `CLAUDE.md` and the hints make the three moments likely, not guaranteed. There is no setting to force or cap advisor calls.
 - **JEV sends data out.** Redacted prompts and shell commands go to the TypeSafe API, in shadow mode too. Use a standard variant on codebases where that is not acceptable.
 - **Extra permission prompts with JEV.** In `enforce` mode `bash-gate` adds `ask` prompts for commands it scores as destructive or external. Expect a few more confirmations until you tune the thresholds.
@@ -417,4 +421,8 @@ Or selectively: remove the `hooks` entries and `env.JEV_MODE` from `settings.jso
 
 ## Credits
 
-Inspired by Anthropic's [advisor strategy](https://claude.com/blog/the-advisor-strategy) and the `claude --model sonnet --advisor opus` pattern. Every setting in this repository was then checked against the official Claude Code documentation.
+Inspired by Anthropic's [advisor strategy](https://claude.com/blog/the-advisor-strategy) and the `claude --model sonnet --advisor opus` pattern. The settings in this repository were checked against the official Claude Code documentation at the time of writing; behavior may change between Claude Code versions.
+
+## License
+
+[MIT](LICENSE)
