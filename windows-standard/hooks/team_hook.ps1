@@ -19,9 +19,12 @@ switch ($Mode) {
   }
 
   "triage" {
-    $input = [Console]::In.ReadToEnd()
-    if (-not $input -or $input.Length -lt 80) { exit 0 }   # short prompts get no hints
-    $lower = $input.ToLowerInvariant()
+    $raw = [Console]::In.ReadToEnd()
+    if (-not $raw) { exit 0 }
+    # The hook input is a JSON envelope; look at the prompt only, not paths or ids.
+    $prompt = ($raw | ConvertFrom-Json).prompt
+    if (-not $prompt -or $prompt.Length -lt 80) { exit 0 }   # short prompts get no hints
+    $lower = $prompt.ToLowerInvariant()
     $hints = @()
     if ($lower -match '\b(where|find|locate|which file|how (does|is|do)|implemented|call(s|ed|er|ers)?|references?|usages?|trace|defined)\b') {
       $hints += "Triage: the code involved may not be named in the request; repository discovery via Explore or grep fits here."
