@@ -21,9 +21,17 @@ EOF
 
   triage)
     input=$(cat 2>/dev/null) || exit 0
+    # The hook input is a JSON envelope; look at the prompt only, not paths or ids.
+    if command -v jq >/dev/null 2>&1; then
+      prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
+    elif command -v python3 >/dev/null 2>&1; then
+      prompt=$(printf '%s' "$input" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("prompt",""))' 2>/dev/null) || exit 0
+    else
+      exit 0
+    fi
     # Short prompts ("ok", "go on") get no hints.
-    [ "${#input}" -lt 80 ] && exit 0
-    lower=$(printf '%s' "$input" | tr '[:upper:]' '[:lower:]')
+    [ "${#prompt}" -lt 80 ] && exit 0
+    lower=$(printf '%s' "$prompt" | tr '[:upper:]' '[:lower:]')
     hints=""
     if printf '%s' "$lower" | grep -qE '\b(where|find|locate|which file|how (does|is|do)|implemented|call(s|ed|er|ers)?|references?|usages?|trace|defined)\b'; then
       hints="Triage: the code involved may not be named in the request; repository discovery via Explore or grep fits here."
