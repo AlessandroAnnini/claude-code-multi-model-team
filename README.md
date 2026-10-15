@@ -233,7 +233,7 @@ flowchart LR
 
     S -->|delegate in parallel| E & G & D
     E & G & D -->|concise findings| S
-    S -.->|before a plan locks<br/>same error twice<br/>before "done"| O
+    S -.->|"before a plan locks<br/>same error twice<br/>before done"| O
     O -.->|guidance| S
     S -->|code · tests · answer| U
 ```
