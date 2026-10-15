@@ -306,7 +306,7 @@ sequenceDiagram
     CC->>J: UserPromptSubmit · prompt-triage
     J->>T: work type? needs exploration? needs external docs?
     T-->>J: probabilities
-    J-->>CC: "Triage: looks architectural (p=0.8); plan is a candidate for advisor review"<br/>"Triage: … Explore or grep fits here"
+    J-->>CC: "Triage: looks architectural (p=0.8), plan is a candidate for advisor review"<br/>"Triage: … Explore or grep fits here"
     CC->>S: prompt + hints
 
     S->>CC: Bash("rm -rf build && npm publish")
